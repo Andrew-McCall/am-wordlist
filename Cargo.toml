@@ -1,16 +1,31 @@
 [package]
-name = "am-word"
+name = "am-wordlist"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.85"
 build = "build.rs"
+description = "A fast, embedded word list you can index, with zero runtime init and zero allocation."
+license = "MIT"
+repository = "https://github.com/Andrew-McCall/am-wordlist"
+homepage = "https://github.com/Andrew-McCall/am-wordlist"
+documentation = "https://docs.rs/am-word"
+readme = "README.md"
+keywords = ["wordlist", "words", "embedded", "no-std", "dictionary"]
+categories = ["data-structures", "text-processing", "no-std"]
+authors = ["Andrew McCall <andrewdavidmccall@hotmail.com>"]
+exclude = ["update-wordlist.sh", ".github/"]
 
 [features]
-default = []
+default = []  # ~25,000 words (full list)
 # Embed a smaller, evenly-sampled subset instead of the full list.
 # NOTE: these are sampled across the alphabetical list for size only — they are
 # NOT frequency-ranked "common word" lists. Enable at most one; smallest wins.
-size-5 = []   # ~5,000 words
+size-5  = []  # ~ 5,000 words
 size-10 = []  # ~10,000 words
 size-15 = []  # ~15,000 words
+
+[[bin]]
+name = "am-word"
+path = "src/main.rs"
 
 [dependencies]

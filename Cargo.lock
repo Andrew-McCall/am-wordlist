@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "am-word"
+name = "am-wordlist"
 version = "0.1.0"
