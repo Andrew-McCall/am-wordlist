@@ -43,10 +43,10 @@ pub fn get(index: usize) -> Option<&'static str> {
 /// the range is out of bounds or its start is past its end — matching [`get`].
 ///
 /// ```
-/// let mut it = am_word::get_range(0..3).unwrap();
+/// let mut it = am_wordlist::get_range(0..3).unwrap();
 /// assert_eq!(it.clone().count(), 3);
-/// assert_eq!(it.next(), am_word::get(0));
-/// assert!(am_word::get_range(0..=am_word::LEN).is_none());
+/// assert_eq!(it.next(), am_wordlist::get(0));
+/// assert!(am_wordlist::get_range(0..=am_wordlist::LEN).is_none());
 /// ```
 #[inline]
 pub fn get_range<R: RangeBounds<usize>>(
@@ -123,7 +123,8 @@ mod tests {
         assert!(super::get_range(0..=full).is_none());
         assert!(super::get_range(full + 1..full + 2).is_none());
         // start past end is rejected, not clamped.
-        assert!(super::get_range(5..2).is_none());
+        let (a, b) = (5usize, 2usize);
+        assert!(super::get_range(a..b).is_none());
         assert!(super::get_range(..=usize::MAX).is_none());
     }
 }
