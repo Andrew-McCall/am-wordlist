@@ -1,5 +1,5 @@
-//! Bakes each word's byte range into the binary at compile time, so lookups at
-//! runtime are just a slice.
+//! Bakes the word list into the binary at compile time: a normalized blob plus
+//! one start offset per word, so a lookup at runtime is just a slice.
 
 use std::env;
 use std::fmt::Write as _;
@@ -26,34 +26,35 @@ fn main() {
     println!("cargo:rerun-if-changed=build.rs");
 
     let content = fs::read_to_string(&path).expect("read wordlist");
-    let bytes = content.as_bytes();
 
-    // One (start, end) range per non-empty line, ignoring stray CR and a
-    // missing final newline.
-    let mut spans = String::new();
+    // Re-emit the list with exactly one '\n' after every word. Normalizing here
+    // means stray CR, blank lines and a missing final newline never reach the
+    // index, so a word's end is always the next word's start less one -- which
+    // is what lets us store starts alone instead of (start, end) pairs.
+    let mut blob = String::with_capacity(content.len());
+    let mut starts = String::new();
     let mut count = 0usize;
-    let mut start = 0usize;
-    for i in 0..=bytes.len() {
-        if i == bytes.len() || bytes[i] == b'\n' {
-            let mut end = i;
-            if end > start && bytes[end - 1] == b'\r' {
-                end -= 1;
-            }
-            if end > start {
-                write!(spans, "({start},{end}),").unwrap();
-                count += 1;
-            }
-            start = i + 1;
+    for line in content.lines() {
+        let word = line.trim_end_matches('\r');
+        if word.is_empty() {
+            continue;
         }
+        write!(starts, "{},", blob.len()).unwrap();
+        blob.push_str(word);
+        blob.push('\n');
+        count += 1;
     }
+    // Sentinel one past the final separator, so `blob[STARTS[i]..STARTS[i+1]-1]`
+    // resolves every word including the last.
+    write!(starts, "{},", blob.len()).unwrap();
+
+    let out = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR"));
+    fs::write(out.join("wordblob.txt"), &blob).expect("write wordblob.txt");
 
     let code = format!(
-        "pub static BLOB: &str = include_str!(r\"{path}\");\n\
-         pub static SPANS: &[(u32, u32)] = &[{spans}];\n\
+        "pub static BLOB: &str = include_str!(concat!(env!(\"OUT_DIR\"), \"/wordblob.txt\"));\n\
+         pub static STARTS: &[u32] = &[{starts}];\n\
          pub const WORD_COUNT: usize = {count};\n",
-        path = path.display(),
     );
-
-    let out = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR")).join("worddata.rs");
-    fs::write(out, code).expect("write worddata.rs");
+    fs::write(out.join("worddata.rs"), code).expect("write worddata.rs");
 }

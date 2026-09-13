@@ -2,9 +2,14 @@
 # Download the Moby thesaurus and build the embedded wordlists.
 #
 #   1. Keep the first word of each line (before the comma).
-#   2. Drop any entry containing a hyphen or an uppercase letter.
-#   3. Write the full list to src/wordlist.txt.
+#   2. Keep only entries that are purely lowercase a-z (drops hyphens,
+#      uppercase, apostrophes, spaces and blank lines in one pass).
+#   3. Sort and de-duplicate, then write the full list to src/wordlist.txt.
 #   4. Emit evenly-sampled size tiers (5k/10k/15k) that build.rs can embed.
+#
+# The library relies on the invariants step 2-3 establish: every line is
+# non-empty ASCII [a-z]+, the list is in C-locale sort order, and there are
+# no duplicates. `cargo test` enforces all three.
 set -eu
 
 URL="https://www.gutenberg.org/files/3202/files/mthesaur.txt"
@@ -16,8 +21,8 @@ SRC="$SCRIPT_DIR/src"
 wget -O "$SCRIPT_DIR/mthesaur.txt" "$URL"
 
 cut -d',' -f1 "$SCRIPT_DIR/mthesaur.txt" \
-	| grep -v -- '-' \
-	| grep -v '[A-Z]' \
+	| LC_ALL=C grep -xE '[a-z]+' \
+	| LC_ALL=C sort -u \
 	> "$SRC/wordlist.txt"
 
 # Downsample the full list into evenly-spaced tiers. Each tier walks the full
